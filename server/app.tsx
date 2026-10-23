@@ -1,6 +1,9 @@
 import express from 'express'
 import cors from 'cors'
 import type { CorsOptions } from 'cors'
+import { Router } from 'express'
+import { resolve } from 'node:dns'
+import type { Request, Response } from 'express'
 
 const app = express()
 
@@ -30,3 +33,20 @@ export const corsMiddleware = ({ acceptedOrigins = ACCEPTED_ORIGINS} : CorsMiddl
 };
 
 app.use(corsMiddleware())
+
+// --- Router stores ---
+
+app.use('/stores', storesRouter())
+
+// --- Stores Controller --- 
+
+export class StoresController {
+
+    GetAllStores = async (req: Request, res: Response) => {
+        
+    }
+}
+
+
+// --- Router Inventary --- 
+

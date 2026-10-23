@@ -1,0 +1,25 @@
+{
+  "sqltools.connections": [
+    {
+      "mysqlOptions": {
+        "authProtocol": "default",
+        "enableSsl": "Enabled",
+        "ssl": {
+          "ca": "/etc/ssl/certs/ca-certificates.crt"
+        }
+      },
+      "ssh": "Disabled",
+      "previewLimit": 50,
+      "server": "gateway01.sa-east-1.prod.aws.tidbcloud.com",
+      "port": 4000,
+      "sshOptions": {
+        "port": 22
+      },
+      "driver": "TiDB",
+      "name": "HallownestStores-db",
+      "database": "test",
+      "username": "3WWbawMHwRmEoNh.root",
+      "askForPassword": true
+    }
+  ]
+}
