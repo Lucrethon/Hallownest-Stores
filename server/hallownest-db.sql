@@ -30,7 +30,6 @@ CREATE TABLE store_inventory (
     PRIMARY KEY(store_id, item_id), 
     FOREIGN KEY (store_id) REFERENCES stores(store_id) ON DELETE CASCADE,
     FOREIGN KEY (item_id) REFERENCES items(item_id) ON DELETE CASCADE
-
 ); 
 
 CREATE TABLE user_inventory (
