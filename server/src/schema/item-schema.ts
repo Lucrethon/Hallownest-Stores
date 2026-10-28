@@ -12,3 +12,9 @@ export const itemSchema = z.object({
 export function validateSchema (object : ItemSchema) {
     return itemSchema.safeParse(object)
 }
+
+// validate partial schmea to update quantity 
+
+export function validatePartialSchema (object : unknown) {
+    return itemSchema.partial().safeParse(object)
+}
