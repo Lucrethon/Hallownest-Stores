@@ -14,7 +14,7 @@ CREATE TABLE stores (
 ); 
 
 CREATE TABLE items (
-    item_id INT AUTO_INCREMENT PRIMARY KEY,
+    item_id BINARY(16) PRIMARY KEY DEFAULT(UUID_TO_BIN(UUID())),
     name VARCHAR(255),
     type ENUM('charm', 'mask_shard', 'vessel_fragment', 'key', 'map') NOT NULL,
     description TEXT, 
@@ -23,9 +23,9 @@ CREATE TABLE items (
 
 
 CREATE TABLE store_inventory (
-    store_id BINARY(16),
-    item_id INT, 
-    stock INT NOT NULL, 
+    store_id BINARY(16) NOT NULL,
+    item_id BINARY(16) NOT NULL, 
+    stock INT DEFAULT 1, 
     geo_cost INT NOT NULL, 
     PRIMARY KEY(store_id, item_id), 
     FOREIGN KEY (store_id) REFERENCES stores(store_id) ON DELETE CASCADE,
@@ -34,9 +34,12 @@ CREATE TABLE store_inventory (
 
 CREATE TABLE user_inventory (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    item_id INT NOT NULL,
+    item_id BINARY(16) NOT NULL,
+    store_id BINARY(16) NOT NULL,
     purchased_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (item_id) REFERENCES items(item_id) ON DELETE CASCADE
+    quantity INT NOT NULL DEFAULT 1, 
+    FOREIGN KEY (item_id) REFERENCES items(item_id) ON DELETE CASCADE,
+    FOREIGN KEY (store_id) REFERENCES stores(store_id) ON DELETE CASCADE
 ); 
 
 INSERT INTO stores (name, seller_name, slug, location) VALUES
