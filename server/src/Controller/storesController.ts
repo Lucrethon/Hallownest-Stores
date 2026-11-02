@@ -27,16 +27,18 @@ export class StoresController {
         // esto iria en el model, pasandole el slug
         const [catalog] = await pool.query<RowDataPacket[]>(
             `SELECT 
-            BIN_TO_UUID(i.store_id) i.item_id, 
+            BIN_TO_UUID(i.item_id) as item_id, 
             i.name, 
             i.type, 
             i.description, 
             i.image_url,
             si.geo_cost,
             si.stock
-        FROM items AS i
-        INNER JOIN store_inventory AS si ON i.item_id = si.item_id
-        INNER JOIN stores AS s ON si.store_id = s.store_id
+        FROM items i
+        INNER JOIN store_inventory si 
+            ON i.item_id = si.item_id
+        INNER JOIN stores s 
+            ON si.store_id = s.store_id
         WHERE s.slug = ?;`, [slug]
         )
 
