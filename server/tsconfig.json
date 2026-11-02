@@ -8,16 +8,22 @@
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
     "module": "nodenext",
+    "moduleResolution": "nodenext",
     "target": "esnext",
     // For nodejs:
     "lib": ["esnext"],
     "types": ["node"],
+
+    // Opciones necesarias para imports con extensión .ts
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+
     // and npm install -D @types/node
 
     // Other Outputs
-    "sourceMap": true,
-    "declaration": true,
-    "declarationMap": true,
+    "sourceMap": false,
+    "declaration": false,
+    "declarationMap": false,
 
     // Stricter Typechecking Options
     "noUncheckedIndexedAccess": true,
@@ -39,5 +45,6 @@
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "skipLibCheck": true,
+    
   }
 }
