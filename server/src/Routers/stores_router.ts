@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { StoresController } from "../Controller/storesController.js";
+import { StoresController } from "../Controller/storesController.ts";
 
 export const createStoresRouter = () => {
     const storesRouter = Router()

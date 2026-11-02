@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { InventoryController } from "../Controller/storesController.js";
+import { InventoryController } from "../Controller/inventoryController.ts";
 
 export const createKnightRouter = () => {
     const knightRouter = Router()
@@ -9,7 +9,7 @@ export const createKnightRouter = () => {
     knightRouter.get('/', knightController.GetInventory)
 
     // POST: buy an item 
-    knightRouter.post('/slug', knightController.BuyItem)
+    knightRouter.post('/', knightController.BuyItem)
 
     return knightRouter
 }
