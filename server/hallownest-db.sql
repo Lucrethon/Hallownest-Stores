@@ -95,3 +95,10 @@ INSERT INTO items (name, type, description, image_url) VALUES
 ('Kingsoul', 'charm', 'Amuleto real sagrado que regenera Alma de forma infinita y continua.', 'https://static.wikia.nocookie.net/hollowknight/images/3/34/Kingsoul.png/revision/latest?cb=20180909170505'),
 ('Void Heart', 'charm', 'Unifica el vacío bajo la voluntad del portador. No puede ser desequipado ni consume muescas.', 'https://static.wikia.nocookie.net/hollowknight/images/b/bb/Void_Heart.png/revision/latest?cb=20180909170526');
 
+INSERT INTO store_inventory (store_id, item_id, stock, geo_cost) 
+VALUES (
+    (SELECT store_id FROM stores WHERE slug = 'divinestore'), 
+    (SELECT item_id FROM items WHERE name = 'Soul Catcher'), 
+    1, 
+    3000
+);
