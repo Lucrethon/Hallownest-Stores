@@ -1,16 +1,16 @@
 import express from 'express'
 import cors from 'cors'
-import type { CorsOptions } from 'cors'
-import { createKnightRouter } from './src/Routers/knight_router.js'
-import { createStoresRouter } from './src/Routers/stores_router.js'
+import type { Request, Response } from 'express';
+import { createKnightRouter } from './src/Routers/knight_router.ts';
+import { createStoresRouter } from './src/Routers/stores_router.ts'
 
 
 const app = express()
 
-const PORT = process.env.PORT ?? 4500 
+const PORT = 5173 
 
 const ACCEPTED_ORIGINS = [
-    'http://localhost:5173',
+    'http://localhost:5173/',
 ]
 
 type CorsMiddlewareOptions = {
@@ -32,11 +32,26 @@ export const corsMiddleware = ({ acceptedOrigins = ACCEPTED_ORIGINS} : CorsMiddl
     });
 };
 
-app.use(corsMiddleware())
+
+app.use(express.json());
+app.disable('x-powered-by');
+app.use(corsMiddleware({}));
+
+app.get('/', (req: Request, res: Response) => {
+    res.send('<h1>Hallownest Stores</h1>')
+})
 
 app.use('/stores', createStoresRouter())
 app.use('/knight', createKnightRouter())
 
 
+// Default error 404
+app.use((req, res) => {
+    res.status(404).send('<h1>Error 404</h1>')
+})
 
 
+// Listen port
+app.listen(PORT, () => {
+    console.log(`Sever listening in port http://localhost:${PORT}`)
+})
