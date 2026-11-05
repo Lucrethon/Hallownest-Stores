@@ -1,8 +1,9 @@
-import mysql, { type ConnectionConfig, type RowDataPacket } from 'mysql2/promise'
+import mysql, { type RowDataPacket } from 'mysql2/promise'
 import type { Request, Response } from 'express';
-import { validateSchema } from '../schema/item-schema.ts';
+import { validateSchema, validateSellItemSchema } from '../schema/item-schema.ts';
 import type { ResultSetHeader } from 'mysql2/promise';
 import { pool } from './pool.ts';
+
 
 export class InventoryController {
 
@@ -33,7 +34,7 @@ export class InventoryController {
         }
 
         const {
-            amountToBuy,
+            amount,
             item_id, 
             store_id
         } = bodyResult.data
@@ -52,7 +53,7 @@ export class InventoryController {
             const [result] = await poolConn.query<ResultSetHeader>(`
                 UPDATE store_inventory 
                 SET stock = stock - ? 
-                WHERE store_id = UUID_TO_BIN(?) AND item_id = UUID_TO_BIN(?) AND stock >= ?`, [amountToBuy, store_id, item_id, amountToBuy]);
+                WHERE store_id = UUID_TO_BIN(?) AND item_id = UUID_TO_BIN(?) AND stock >= ?`, [amount, store_id, item_id, amount]);
 
             // validar si el producto existe en la tienda 
             if (result.affectedRows === 0) {
@@ -64,7 +65,7 @@ export class InventoryController {
             INSERT INTO user_inventory (item_id, store_id, quantity) 
             VALUES (UUID_TO_BIN(?), UUID_TO_BIN(?), ?)
             ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity);
-            `, [item_id, store_id, amountToBuy]
+            `, [item_id, store_id, amount]
             )
 
             // ON DUPLICATE KEY UPDATE: Intenta insertar esta nueva fila. Pero si al intentar insertarla chocas con un registro que ya existe (porque viola una clave primaria o una restricción UNIQUE), no arrojes un error: en su lugar, ejecuta un UPDATE sobre la fila existente.
@@ -87,6 +88,67 @@ export class InventoryController {
         }
 
     }
+
+    // POST: sell item 
+    // recibe el slug de la tienda
+    SellItem = async (req: Request, res: Response) => {
+
+        const { slug } = req.params
+
+        const bodyResult = validateSellItemSchema(req.body);
+
+        if (!bodyResult.success) {
+            return res.status(400).json(JSON.parse(bodyResult.error.message))
+        }
+
+        const {
+            amount, 
+            item_id
+        } = bodyResult.data
+
+        const conn = await pool.getConnection()
+
+        try {
+            await conn.beginTransaction()
+
+            // reducir cantidad en inventario
+            await conn.query(
+                `UPDATE user_inventory 
+                SET quantity = quantity - ?
+                WHERE item_id = UUID_TO_BIN(?) AND quantity => ?`, [amount, item_id, amount]
+            )
+
+            // eliminar registros con inventario en 0 o menor
+            await conn.query(
+                `DELETE FROM user_inventory
+                WHERE quantity <= 0`
+            )
+
+            // actualizar el stock de la tienda 
+            await conn.query(
+            `INSERT INTO store_inventory (
+                store_id,
+                item_id,
+                stock,
+                geo_cost
+            ) SELECT store_id, ?, ?, ?)
+            FROM stores WHERE slug = ?`, [item_id, amount, cost, slug]
+            );
+
+            await conn.commit()
+            return res.status(200).json({ message: "item added successfully"})
+        }
+        catch {
+            await conn.rollback()
+            return res.status(500).json({ message: "Server Internal Error"})
+        }
+        finally {
+            conn.release()
+        }
+
+    } 
+
+    
 
 
 
