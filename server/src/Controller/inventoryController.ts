@@ -3,8 +3,6 @@ import type { Request, Response } from 'express';
 import { validateSchema, validateSellItemSchema } from '../schema/item-schema.ts';
 import type { ResultSetHeader } from 'mysql2/promise';
 import { pool } from './pool.ts';
-import { it } from 'node:test';
-import { builtinModules } from 'node:module';
 
 interface StorePurchaseRow extends RowDataPacket {
     buy_price: number;

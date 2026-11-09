@@ -11,5 +11,8 @@ export const createStoresRouter = () => {
     // GET catalog from specific store
     storesRouter.get('/:slug', storesConroller.GetStoreCatalog)
 
+    // POST sell item 
+    storesRouter.post('/', storesConroller.SellItem)
+
     return storesRouter
 }

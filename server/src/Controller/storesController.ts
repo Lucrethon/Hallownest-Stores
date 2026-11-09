@@ -56,7 +56,7 @@ export class StoresController {
     }
 
     // POST: buy an item
-    BuyItem = async (req: Request, res: Response) => {
+    SellItem = async (req: Request, res: Response) => {
 
         // validar el body del rquest con zod 
         const bodyResult = validateSchema(req.body)
