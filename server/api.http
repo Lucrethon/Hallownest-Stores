@@ -1,0 +1,6 @@
+GET http://localhost:5173/stores
+
+### Get All Stores 
+
+### Get Store Catalog by Slug
+GET http://localhost:5173/stores/divinestore

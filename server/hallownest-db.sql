@@ -32,6 +32,20 @@ CREATE TABLE store_inventory (
     FOREIGN KEY (item_id) REFERENCES items(item_id) ON DELETE CASCADE
 ); 
 
+CREATE TABLE store_purchases (
+    store_id BINARY(16) NOT NULL,
+    item_id BINARY NOT NULL, 
+    buy_price INT NOT NULL, 
+    -- cuando geo paga el vendedor por el objeto
+    PRIMARY KEY(store_id, item_id), 
+    FOREIGN KEY (store_id) REFERENCES stores(store_id) ON DELETE CASCADE,
+    FOREIGN KEY (item_id) REFERENCES items(item_id) ON DELETE CASCADE
+); 
+
+
+
+WHERE BIN_TO_UUID(store_id) = ?
+
 CREATE TABLE user_inventory (
     id INT AUTO_INCREMENT PRIMARY KEY,
     item_id BINARY(16) NOT NULL,
