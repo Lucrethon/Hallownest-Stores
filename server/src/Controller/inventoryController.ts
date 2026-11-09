@@ -1,6 +1,6 @@
 import mysql, { type RowDataPacket } from 'mysql2/promise'
 import type { Request, Response } from 'express';
-import { validateSchema, validateSellItemSchema } from '../schema/item-schema.ts';
+import { validateSchema } from '../schema/item-schema.ts';
 import type { ResultSetHeader } from 'mysql2/promise';
 import { pool } from './pool.ts';
 
@@ -33,7 +33,7 @@ export class InventoryController {
 
         const { slug } = req.params
 
-        const bodyResult = validateSellItemSchema(req.body);
+        const bodyResult = validateSchema(req.body);
 
         if (!bodyResult.success) {
             return res.status(400).json(JSON.parse(bodyResult.error.message))
