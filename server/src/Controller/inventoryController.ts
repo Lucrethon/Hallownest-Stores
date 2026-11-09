@@ -3,6 +3,12 @@ import type { Request, Response } from 'express';
 import { validateSchema, validateSellItemSchema } from '../schema/item-schema.ts';
 import type { ResultSetHeader } from 'mysql2/promise';
 import { pool } from './pool.ts';
+import { it } from 'node:test';
+import { builtinModules } from 'node:module';
+
+interface StorePurchaseRow extends RowDataPacket {
+    buy_price: number;
+}
 
 
 export class InventoryController {
@@ -22,72 +28,6 @@ export class InventoryController {
         res.json(inventory)
     }
 
-    // POST: buy an item
-    BuyItem = async (req: Request, res: Response) => {
-
-        // validar el body del rquest con zod 
-        const bodyResult = validateSchema(req.body)
-
-        // validar si hay errores 
-        if (!bodyResult.success) {
-            return res.status(400).json(JSON.parse(bodyResult.error.message))
-        }
-
-        const {
-            amount,
-            item_id, 
-            store_id
-        } = bodyResult.data
-
-        const poolConn = await pool.getConnection();  // asegura que esa conexión te pertenece solo a ti durante esa función
-
-        try {
-
-            // Concept Autocommit: cada consulta individual (INSERT, UPDATE, DELETE) que ejecutas se guarda en disco de forma permanente e irreversible de manera inmediata.
-
-            // los métodos de transacción sirven para suspender ese comportamiento y agrupar múltiples consultas en un bloque atómico ("todo o nada").
-
-            await poolConn.beginTransaction()
-            // Internamente, desactiva temporalmente el autocommit solo para ese hilo. todas las modificaciones ocurren en un estado pendiente en memoria; no se graban de forma definitiva ni son visibles para otras conexiones concurrentes
-
-            const [result] = await poolConn.query<ResultSetHeader>(`
-                UPDATE store_inventory 
-                SET stock = stock - ? 
-                WHERE store_id = UUID_TO_BIN(?) AND item_id = UUID_TO_BIN(?) AND stock >= ?`, [amount, store_id, item_id, amount]);
-
-            // validar si el producto existe en la tienda 
-            if (result.affectedRows === 0) {
-                await poolConn.rollback();
-                return res.status(400).json("Item not found")
-            }
-
-            await poolConn.query(`
-            INSERT INTO user_inventory (item_id, store_id, quantity) 
-            VALUES (UUID_TO_BIN(?), UUID_TO_BIN(?), ?)
-            ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity);
-            `, [item_id, store_id, amount]
-            )
-
-            // ON DUPLICATE KEY UPDATE: Intenta insertar esta nueva fila. Pero si al intentar insertarla chocas con un registro que ya existe (porque viola una clave primaria o una restricción UNIQUE), no arrojes un error: en su lugar, ejecuta un UPDATE sobre la fila existente.
-
-
-            await poolConn.commit()
-            return res.status(201).json({ message: 'Item added succefully' });
-
-            // commit: Le indica al motor que todas las operaciones ejecutadas desde beginTransaction() fueron válidas y deben consolidarse de manera permanente e irreversible en el almacenamiento de la base de datos
-            // los cambios se vuelven visibles para todos los demás clientes y usuarios del sistema, y la conexión vuelve a su estado normal de autocommit.
-
-
-        }
-        catch (err) {
-            await poolConn.rollback()
-            return res.status(500).json({ message: 'Server Error'})
-        }
-        finally {
-            poolConn.release()
-        }
-
-    }
 
     // POST: sell item 
     // recibe el slug de la tienda
@@ -111,12 +51,30 @@ export class InventoryController {
         try {
             await conn.beginTransaction()
 
+            // verificar si la tienda compra este objeto: 
+            const [rows] = await conn.query<RowDataPacket[]>(`
+                SELECT buy_price FROM store_purchases sp
+                INNER JOIN stores s
+                    ON sp.store_id = s.store_id 
+                WHERE s.slug = ? AND item_id = UUID_TO_BIN(?)`, [slug, item_id])
+            
+            if (rows.length === 0) {
+                await conn.rollback()
+                return res.status(400).json({ message: "This store does not buy this item"})
+            }
+
             // reducir cantidad en inventario
-            await conn.query(
+            const [result] = await conn.query<ResultSetHeader>(
                 `UPDATE user_inventory 
                 SET quantity = quantity - ?
-                WHERE item_id = UUID_TO_BIN(?) AND quantity => ?`, [amount, item_id, amount]
+                WHERE item_id = UUID_TO_BIN(?) AND quantity >= ?`, [amount, item_id, amount]
             )
+
+            // retornar error si no hay suficiente cantidad en el inventario 
+            if (result.affectedRows === 0) {
+                await conn.rollback()
+                return res.status(400).json({ message: "Don't have enough items to sell"})
+            }
 
             // eliminar registros con inventario en 0 o menor
             await conn.query(
@@ -125,14 +83,21 @@ export class InventoryController {
             )
 
             // actualizar el stock de la tienda 
+
+            // obtener el precio de compra del mercader
+            const { buy_price: buyPrice } = rows[0] as { buy_price: number}
+
+            // actualizar su precio de venta en el stock
+            const geoCost = Math.round(buyPrice * 1.2);
             await conn.query(
             `INSERT INTO store_inventory (
                 store_id,
                 item_id,
                 stock,
                 geo_cost
-            ) SELECT store_id, ?, ?, ?)
-            FROM stores WHERE slug = ?`, [item_id, amount, cost, slug]
+            ) SELECT store_id, UUID_TO_BIN(?), ?, ?
+            FROM stores WHERE slug = ?
+            ON DUPLICATE KEY UPDATE stock = stock + ?`, [item_id, amount, geoCost, slug, amount]
             );
 
             await conn.commit()
@@ -147,9 +112,5 @@ export class InventoryController {
         }
 
     } 
-
-    
-
-
 
 }
