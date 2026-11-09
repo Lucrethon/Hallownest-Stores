@@ -58,6 +58,8 @@ export class StoresController {
     // POST: buy an item
     SellItem = async (req: Request, res: Response) => {
 
+        const { slug } = req.params
+
         // validar el body del rquest con zod 
         const bodyResult = validateSchema(req.body)
 
@@ -69,7 +71,6 @@ export class StoresController {
         const {
             amount,
             item_id, 
-            store_id
         } = bodyResult.data
 
         const poolConn = await pool.getConnection();  // asegura que esa conexión te pertenece solo a ti durante esa función
@@ -85,9 +86,11 @@ export class StoresController {
 
             // restar stock al comerciante
             const [result] = await poolConn.query<ResultSetHeader>(`
-                UPDATE store_inventory 
+                UPDATE store_inventory si
                 SET stock = stock - ? 
-                WHERE store_id = UUID_TO_BIN(?) AND item_id = UUID_TO_BIN(?) AND stock >= ?`, [amount, store_id, item_id, amount]);
+                INNER JOIN stores s
+                    ON si.store_id = s.store_id
+                WHERE s.slug = ? AND item_id = UUID_TO_BIN(?) AND stock >= ?`, [amount, slug, item_id, amount]);
 
             // validar si el producto existe en la tienda 
             if (result.affectedRows === 0) {
@@ -98,9 +101,10 @@ export class StoresController {
             // insertar item en el inventario del usuario 
             await poolConn.query(`
             INSERT INTO user_inventory (item_id, store_id, quantity) 
-            VALUES (UUID_TO_BIN(?), UUID_TO_BIN(?), ?)
+            SELECT UUID_TO_BIN(?), store_id, ?
+            FROM stores WHERE slug = ?
             ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity);
-            `, [item_id, store_id, amount]
+            `, [item_id, amount, slug]
             )
 
             // ON DUPLICATE KEY UPDATE: Intenta insertar esta nueva fila. Pero si al intentar insertarla chocas con un registro que ya existe (porque viola una clave primaria o una restricción UNIQUE), no arrojes un error: en su lugar, ejecuta un UPDATE sobre la fila existente.
