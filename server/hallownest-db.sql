@@ -43,9 +43,6 @@ CREATE TABLE store_purchases (
 ); 
 
 
-
-WHERE BIN_TO_UUID(store_id) = ?
-
 CREATE TABLE user_inventory (
     id INT AUTO_INCREMENT PRIMARY KEY,
     item_id BINARY(16) NOT NULL,
