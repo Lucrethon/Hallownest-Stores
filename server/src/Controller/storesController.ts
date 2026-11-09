@@ -48,7 +48,7 @@ export class StoresController {
         return res.status(404).json({ message: 'No items found for this store' });
     }
 
-    return res.json(catalog);
+    return res.status(200).json(catalog);
 
     // todo esto denttro de un try - catch 
     // el catch seria un error 500 
@@ -87,9 +87,9 @@ export class StoresController {
             // restar stock al comerciante
             const [result] = await poolConn.query<ResultSetHeader>(`
                 UPDATE store_inventory si
-                SET stock = stock - ? 
                 INNER JOIN stores s
                     ON si.store_id = s.store_id
+                SET si.stock = si.stock - ? 
                 WHERE s.slug = ? AND item_id = UUID_TO_BIN(?) AND stock >= ?`, [amount, slug, item_id, amount]);
 
             // validar si el producto existe en la tienda 
