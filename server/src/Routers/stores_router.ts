@@ -12,7 +12,7 @@ export const createStoresRouter = () => {
     storesRouter.get('/:slug', storesConroller.GetStoreCatalog)
 
     // POST sell item 
-    storesRouter.post('/', storesConroller.SellItem)
+    storesRouter.post('/:slug', storesConroller.SellItem)
 
     return storesRouter
 }

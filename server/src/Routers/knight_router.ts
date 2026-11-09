@@ -9,7 +9,7 @@ export const createKnightRouter = () => {
     knightRouter.get('/', knightController.GetInventory)
 
     // POST: buy an item 
-    knightRouter.post('/', knightController.SellItem)
+    knightRouter.post('/:slug', knightController.SellItem)
 
     return knightRouter
 }
