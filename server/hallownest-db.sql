@@ -34,7 +34,7 @@ CREATE TABLE store_inventory (
 
 CREATE TABLE store_purchases (
     store_id BINARY(16) NOT NULL,
-    item_id BINARY NOT NULL, 
+    item_id BINARY(16) NOT NULL, 
     buy_price INT NOT NULL, 
     -- cuando geo paga el vendedor por el objeto
     PRIMARY KEY(store_id, item_id), 
@@ -112,4 +112,11 @@ VALUES (
     (SELECT item_id FROM items WHERE name = 'Soul Catcher'), 
     1, 
     3000
+);
+
+INSERT INTO store_purchases (store_id, item_id, buy_price) 
+VALUES (
+    (SELECT store_id FROM stores WHERE slug = 'divinestore'), 
+    (SELECT item_id FROM items WHERE name = 'Soul Catcher'), 
+    500
 );
