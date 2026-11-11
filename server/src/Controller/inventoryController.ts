@@ -16,11 +16,14 @@ export class InventoryController {
 
         const [inventory] = await pool.query<RowDataPacket[]>(
             `SELECT 
-                id,
-                BIN_TO_UUID(item_id) item_id,
-                BIN_TO_UUID(store_id) store_id,
-                quantity, 
-            from user_inventory;`
+                ui.id,
+                BIN_TO_UUID(ui.item_id) AS item_id,
+                ui.quantity,
+                i.name,
+                i.image_url
+            FROM user_inventory ui
+            INNER JOIN items i
+                ON ui.item_id = i.item_id`
         )
 
         res.json(inventory)
@@ -51,10 +54,10 @@ export class InventoryController {
 
             // verificar si la tienda compra este objeto: 
             const [rows] = await conn.query<RowDataPacket[]>(`
-                SELECT buy_price FROM store_purchases sp
+                SELECT sp.buy_price FROM store_purchases sp
                 INNER JOIN stores s
                     ON sp.store_id = s.store_id 
-                WHERE s.slug = ? AND item_id = UUID_TO_BIN(?)`, [slug, item_id])
+                WHERE s.slug = ? AND sp.item_id = UUID_TO_BIN(?)`, [slug, item_id])
             
             if (rows.length === 0) {
                 await conn.rollback()
@@ -77,7 +80,7 @@ export class InventoryController {
             // eliminar registros con inventario en 0 o menor
             await conn.query(
                 `DELETE FROM user_inventory
-                WHERE quantity <= 0`
+                WHERE quantity <= 0 AND item_id = UUID_TO_BIN(?)`, [item_id]
             )
 
             // actualizar el stock de la tienda 
