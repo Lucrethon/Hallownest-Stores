@@ -1,8 +1,6 @@
-import mysql, { type RowDataPacket } from 'mysql2/promise'
 import type { Request, Response } from 'express';
-import { pool } from './pool.ts';
 import { validateSchema } from '../schema/item-schema.ts';
-import type { ResultSetHeader } from 'mysql2/promise';
+import { StoresModel } from '../Models/stores.ts';
 
 
 
@@ -11,12 +9,9 @@ export class StoresController {
     // GET: obtener todas la tiendas 
     GetAll = async (req: Request, res: Response) => {
 
-        // todavia no he hecho el model, esta todo junto por ahora 
-        const [stores] = await pool.query(
-            'SELECT BIN_TO_UUID(store_id) store_id, name, seller_name, slug, location, position_x, position_y FROM stores'
-        )
+        const stores = await StoresModel.GetAllStores()
 
-        res.json(stores)
+        res.status(200).json(stores)
 
     }
 
@@ -24,32 +19,16 @@ export class StoresController {
     GetStoreCatalog = async (req: Request, res: Response) => {
 
         // al router se le pasaría un :slug
-        const { slug } = req.params
+        const { slug } = req.params as { slug: string}
 
-        // esto iria en el model, pasandole el slug
-        const [catalog] = await pool.query<RowDataPacket[]>(
-            `SELECT 
-            BIN_TO_UUID(i.item_id) as item_id, 
-            i.name, 
-            i.type, 
-            i.description, 
-            i.image_url,
-            si.geo_cost,
-            si.stock
-        FROM items i
-        INNER JOIN store_inventory si 
-            ON i.item_id = si.item_id
-        INNER JOIN stores s 
-            ON si.store_id = s.store_id
-        WHERE s.slug = ?;`, [slug]
-        )
-
-    if (catalog.length === 0) {
-        return res.status(404).json({ message: 'No items found for this store' });
-    }
-
-    return res.status(200).json(catalog);
-
+        try {
+            const catalog = await StoresModel.GetCathalog({slug})
+            return res.status(200).json(catalog);
+        }
+        catch (err: any) {
+            const message = err instanceof Error ? err.message : 'Unknown error';
+            return res.status(404).json({message})
+        }
     // todo esto denttro de un try - catch 
     // el catch seria un error 500 
 
@@ -58,7 +37,7 @@ export class StoresController {
     // POST: buy an item
     BuyItem = async (req: Request, res: Response) => {
 
-        const { slug } = req.params
+        const { slug } = req.params as {slug : string}
 
         // validar el body del rquest con zod 
         const bodyResult = validateSchema(req.body)
@@ -68,68 +47,18 @@ export class StoresController {
             return res.status(400).json(JSON.parse(bodyResult.error.message))
         }
 
-        const {
-            amount,
-            item_id, 
-        } = bodyResult.data
-
-        const poolConn = await pool.getConnection();  // asegura que esa conexión te pertenece solo a ti durante esa función
+        const item = bodyResult.data 
 
         try {
-
-            // Concept Autocommit: cada consulta individual (INSERT, UPDATE, DELETE) que ejecutas se guarda en disco de forma permanente e irreversible de manera inmediata.
-
-            // los métodos de transacción sirven para suspender ese comportamiento y agrupar múltiples consultas en un bloque atómico ("todo o nada").
-
-            await poolConn.beginTransaction()
-            // Internamente, desactiva temporalmente el autocommit solo para ese hilo. todas las modificaciones ocurren en un estado pendiente en memoria; no se graban de forma definitiva ni son visibles para otras conexiones concurrentes
-
-            // restar stock al comerciante
-            const [result] = await poolConn.query<ResultSetHeader>(`
-                UPDATE store_inventory si
-                INNER JOIN stores s
-                    ON si.store_id = s.store_id
-                SET si.stock = si.stock - ? 
-                WHERE s.slug = ? AND item_id = UUID_TO_BIN(?) AND stock >= ?`, [amount, slug, item_id, amount]);
-
-            // validar si el producto existe en la tienda 
-            if (result.affectedRows === 0) {
-                await poolConn.rollback();
-                return res.status(400).json("Not enough stock")
-            }
-
-            // insertar item en el inventario del usuario 
-            await poolConn.query(`
-            INSERT INTO user_inventory (item_id, store_id, quantity) 
-            SELECT UUID_TO_BIN(?), store_id, ?
-            FROM stores WHERE slug = ?
-            ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity);
-            `, [item_id, amount, slug]
-            )
-
-            // ON DUPLICATE KEY UPDATE: Intenta insertar esta nueva fila. Pero si al intentar insertarla chocas con un registro que ya existe (porque viola una clave primaria o una restricción UNIQUE), no arrojes un error: en su lugar, ejecuta un UPDATE sobre la fila existente.
-
-
-            await poolConn.commit()
-            return res.status(201).json({ message: 'Item added to user inventory succefully' });
-
-            // commit: Le indica al motor que todas las operaciones ejecutadas desde beginTransaction() fueron válidas y deben consolidarse de manera permanente e irreversible en el almacenamiento de la base de datos
-            // los cambios se vuelven visibles para todos los demás clientes y usuarios del sistema, y la conexión vuelve a su estado normal de autocommit.
-
-
+            await StoresModel.BuyItem({ item, slug })
+            return res.status(200).json({ message: 'Item purchased successfully' })
         }
-        catch (err) {
-            await poolConn.rollback()
-            return res.status(500).json({ message: 'Server Error'})
-        }
-        finally {
-            poolConn.release()
+        catch (err: any) {
+            const message = err instanceof Error ? err.message : 'Unknown error';
+            return res.status(500).json({message})
         }
 
     }
 }
-
-// ---
-
 
 
