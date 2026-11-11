@@ -56,7 +56,7 @@ export class StoresController {
     }
 
     // POST: buy an item
-    SellItem = async (req: Request, res: Response) => {
+    BuyItem = async (req: Request, res: Response) => {
 
         const { slug } = req.params
 
