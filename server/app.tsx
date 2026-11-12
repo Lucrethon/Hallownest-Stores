@@ -1,37 +1,14 @@
 import express from 'express'
-import cors from 'cors'
+
 import type { Request, Response } from 'express';
 import { createKnightRouter } from './src/Routers/knight_router.ts';
 import { createStoresRouter } from './src/Routers/stores_router.ts'
+import { corsMiddleware } from './src/Middlewares/cors.ts'
 
 
 const app = express()
 
 const PORT = 5173 
-
-const ACCEPTED_ORIGINS = [
-    'http://localhost:5173/',
-]
-
-type CorsMiddlewareOptions = {
-    acceptedOrigins? : string[] | string
-}
-
-export const corsMiddleware = ({ acceptedOrigins = ACCEPTED_ORIGINS} : CorsMiddlewareOptions) => {
-    return cors({
-        origin: (    
-            origin : string | undefined, 
-            callback : (err: Error | null, allow?: boolean) => void) => {
-
-            // Si no hay origin (peticiones directas/mismo origen) o si el origen está incluido en los origentes permitidos
-            if (!origin || acceptedOrigins.includes(origin)) {
-                return callback(null, true)
-            }
-            return callback(new Error('Not Allowed by CORS'))
-        }
-    });
-};
-
 
 app.use(express.json());
 app.disable('x-powered-by');
