@@ -1,6 +1,8 @@
 node_modules
 .env
 HallownestStores-db.session.sql
+.vscode
+api.http
 
 # Logs
 logs
