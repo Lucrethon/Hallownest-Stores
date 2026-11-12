@@ -1,6 +1,26 @@
-GET http://localhost:5173/stores
-
 ### Get All Stores 
+GET http://localhost:5173/stores
 
 ### Get Store Catalog by Slug
 GET http://localhost:5173/stores/divinestore
+
+### POST : sell item 
+POST http://localhost:5173/stores/divinestore
+Content-Type: application/json
+
+{
+    "amount": 1,
+    "item_id": "b6ad975d-ddec-11f1-9b33-aef6d56498d4"
+}
+
+### GET user inventory
+GET http://localhost:5173/knight
+
+### POST : user sell item
+POST http://localhost:5173/knight/divinestore
+Content-Type: application/json
+
+{
+    "amount": 1,
+    "item_id": "b6ad975d-ddec-11f1-9b33-aef6d56498d4"
+}
